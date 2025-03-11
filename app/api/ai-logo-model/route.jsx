@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/configs/FirebaseConfig";
 import Replicate from "replicate";
 import { Buffer } from "buffer";
+import sharp from "sharp";
 
 export async function POST(req) {
   const { prompt, title, desc, email, type, userCredit } = await req.json();
@@ -32,9 +33,16 @@ export async function POST(req) {
           responseType: "arraybuffer",
         }
       );
+
       const buffer = Buffer.from(response.data, "binary");
-      const base64Image = buffer.toString("base64");
-      base64data = `data:image/png;base64,${base64Image}`;
+
+      // Compress using sharp before base64 conversion
+      const compressedBuffer = await sharp(buffer)
+        .resize({ width: 512 })
+        .png({ quality: 70 })
+        .toBuffer();
+
+      base64data = `data:image/png;base64,${compressedBuffer.toString("base64")}`;
     } else {
       const output = await replicate.run(
         "bytedance/hyper-flux-8step:81946b1e09b256c543b35f37333a30d0d02ee2cd8c4f77cd915873a1ca622bad",
@@ -49,22 +57,16 @@ export async function POST(req) {
           },
         }
       );
-      console.log("Replicate Output:", output);
+
       const imageUrl = output?.[0];
-      console.log("Replicate Image URL:", imageUrl);
       base64data = await ConvertImageToBase64(imageUrl);
-      console.log("Base64 Image Length:", base64data?.length);
-      
 
-      //if (base64data && userCredit) {
-        //const docRef = doc(db, "users", email);
-        //await updateDoc(docRef, {
-        //  credits: Number(userCredit) - 1,
-        //});
-      //}
+      // Optionally update credit
+      // if (base64data && userCredit) {
+      //   const docRef = doc(db, "users", email);
+      //   await updateDoc(docRef, { credits: Number(userCredit) - 1 });
+      // }
     }
-
-    console.log("Generated Base64 Image:", base64data.slice(0, 100) + "...");
 
     await setDoc(doc(db, "users", email, "logos", Date.now().toString()), {
       image: base64data,
@@ -81,13 +83,17 @@ export async function POST(req) {
 
 async function ConvertImageToBase64(imageUrl) {
   try {
-    const resp = await axios.get(imageUrl, {
-      responseType: "arraybuffer",
-    });
-    const base64ImageRaw = Buffer.from(resp.data).toString("base64");
-    return `data:image/png;base64,${base64ImageRaw}`;
+    const resp = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    const originalBuffer = Buffer.from(resp.data);
+
+    const compressedBuffer = await sharp(originalBuffer)
+      .resize({ width: 512 })
+      .png({ quality: 70 })
+      .toBuffer();
+
+    return `data:image/png;base64,${compressedBuffer.toString("base64")}`;
   } catch (error) {
-    console.error("Image Conversion Error:", error.message);
+    console.error("Image Compression Error:", error.message);
     return "";
   }
 }
