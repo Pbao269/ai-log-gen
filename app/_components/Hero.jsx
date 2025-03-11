@@ -15,11 +15,11 @@ function Hero() {
       <div className="flex w-full max-w-2xl">
         <input 
             type="text"
-            placeholder= {Lookup.InputTitlePlaceholder}
+            placeholder= 'Type anything to get started'
             className="p-4 border border-border rounded-md w-full shadow-md focus:ring-2 focus:ring-primary focus:outline-none"
             onChange={(e) => setLogoTitle(e.target.value)}
         />
-        <Link href={`/create?title=${logoTitle}`}>
+        <Link href={'/create'}>
         <Button className="px-6 py-4 ml-4 h-[57px]">
             Go
         </Button>
