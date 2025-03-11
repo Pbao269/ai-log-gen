@@ -5,12 +5,8 @@ import Lookup from '@/app/_data/Lookup'
 import { useSearchParams } from 'next/navigation'
 
 function LogoTitle({onHanldleInputChange}) {
-  const [title, setTitle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('logoTitle') || '';
-    }
-    return '';
-  });
+    const searchParam = useSearchParams();
+    const [title,setTitle] = useState(searchParam.get('title')??'');
   return (
     <div className='my-10'>
         <HeadingDescription title={Lookup.LogoTitle} description={Lookup.LogoTitleDesc}/>
